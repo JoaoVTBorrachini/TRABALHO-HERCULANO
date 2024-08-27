@@ -36,19 +36,19 @@ class Application(tk.Tk):
 
         self.objects = []
 
-        # Canvas
+
         self.canvas = tk.Canvas(self, bg="white", width=WIDTH, height=HEIGHT)
         self.canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
-        # Sidebar
+
         self.sidebar = tk.Frame(self, width=200, bg="lightgray")
         self.sidebar.pack(side=tk.RIGHT, fill=tk.Y)
 
-        # Listbox
+
         self.listbox = tk.Listbox(self.sidebar, bg="white")
         self.listbox.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
-        # Buttons
+
         self.button_frame = tk.Frame(self.sidebar)
         self.button_frame.pack(side=tk.BOTTOM, fill=tk.X)
 
@@ -64,7 +64,6 @@ class Application(tk.Tk):
 
         self.update_viewport()
 
-        # Bind selection event
         self.listbox.bind("<<ListboxSelect>>", self.on_listbox_select)
 
     def add_point(self):
@@ -124,7 +123,6 @@ class Application(tk.Tk):
         selected_index = self.listbox.curselection()
         if selected_index:
             selected_text = self.listbox.get(selected_index)
-            # Extract the name from the selected item
             selected_name = selected_text.split(":")[0]
             for obj in self.objects:
                 if obj.name == selected_name:
