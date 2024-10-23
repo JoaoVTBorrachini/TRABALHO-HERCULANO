@@ -24,6 +24,55 @@ def to_screen_coords(x, y, canvas_width, canvas_height, window_x, window_y, zoom
     y = (y - window_y) * zoom
     return (canvas_width // 2 + int(x), canvas_height // 2 - int(y))
 
+class Matriz:
+    def __init__(self, linhas, colunas):
+        self.linhas = linhas
+        self.colunas = colunas
+        self.matriz = [[0.0 for _ in range(colunas)] for _ in range(linhas)]
+
+    def set_valor(self, linha, coluna, valor):
+        self.matriz[linha][coluna] = valor
+
+    def get_valor(self, linha, coluna):
+        return self.matriz[linha][coluna]
+
+    def __mul__(self, outra):
+        if self.colunas != outra.linhas:
+            raise ValueError("Multiplicação impossível: número de colunas da primeira matriz deve ser igual ao número de linhas da segunda matriz.")
+        resultado = Matriz(self.linhas, outra.colunas)
+        for i in range(self.linhas):
+            for j in range(outra.colunas):
+                soma = 0.0
+                for k in range(self.colunas):
+                    soma += self.matriz[i][k] * outra.matriz[k][j]
+                resultado.set_valor(i, j, soma)
+        return resultado
+
+    def imprime(self):
+        for linha in self.matriz:
+            print(" ".join(f"{v:.2f}" for v in linha))
+
+# Teste de multiplicação
+m1 = Matriz(2, 3)
+m2 = Matriz(3, 2)
+
+m1.set_valor(0, 0, 1)
+m1.set_valor(0, 1, 2)
+m1.set_valor(0, 2, 3)
+m1.set_valor(1, 0, 4)
+m1.set_valor(1, 1, 5)
+m1.set_valor(1, 2, 6)
+
+m2.set_valor(0, 0, 7)
+m2.set_valor(0, 1, 8)
+m2.set_valor(1, 0, 9)
+m2.set_valor(1, 1, 10)
+m2.set_valor(2, 0, 11)
+m2.set_valor(2, 1, 12)
+
+resultado = m1 * m2
+resultado.imprime()
+
 class Application(tk.Tk):
     def __init__(self):
         super().__init__()
@@ -124,7 +173,7 @@ class Application(tk.Tk):
     def get_selected_object(self):
         selected_index = self.listbox.curselection()
         if not selected_index:
-            messagebox.showwarning("Aviso", "Nenhum objeto selecionado.")
+            messagebox.showwarning("Aviso", "Nenhum objeto selecionado.") 
             return None
 
         selected_name = self.listbox.get(selected_index)
