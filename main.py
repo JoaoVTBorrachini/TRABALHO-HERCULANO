@@ -19,10 +19,16 @@ class Object2D:
             x2, y2 = to_screen_coords(self.x2, self.y2, canvas.winfo_width(), canvas.winfo_height(), window_x, window_y, zoom)
             canvas.create_line(x1, y1, x2, y2, fill="black")
 
-def to_screen_coords(x, y, canvas_width, canvas_height, window_x, window_y, zoom):
-    x = (x - window_x) * zoom
-    y = (y - window_y) * zoom
-    return (canvas_width // 2 + int(x), canvas_height // 2 - int(y))
+    def apply_transformation(self, matrix):
+        """Aplica uma transformação homogênea à coordenada do objeto."""
+        # Transforma o ponto inicial
+        x1, y1, _ = matrix * Matriz.from_point(self.x1, self.y1)
+        self.x1, self.y1 = x1, y1
+
+        # Transforma o ponto final se for uma linha
+        if self.obj_type == "line" and self.x2 is not None and self.y2 is not None:
+            x2, y2, _ = matrix * Matriz.from_point(self.x2, self.y2)
+            self.x2, self.y2 = x2, y2
 
 class Matriz:
     def __init__(self, linhas, colunas):
@@ -48,6 +54,49 @@ class Matriz:
                 resultado.set_valor(i, j, soma)
         return resultado
 
+    @staticmethod
+    def from_point(x, y):
+        """Cria uma matriz coluna a partir de um ponto (x, y)."""
+        matriz = Matriz(3, 1)
+        matriz.set_valor(0, 0, x)
+        matriz.set_valor(1, 0, y)
+        matriz.set_valor(2, 0, 1)
+        return matriz
+
+    @staticmethod
+    def translation(dx, dy):
+        """Cria uma matriz de translação para deslocamento dx e dy."""
+        matriz = Matriz(3, 3)
+        matriz.set_valor(0, 0, 1)
+        matriz.set_valor(1, 1, 1)
+        matriz.set_valor(2, 2, 1)
+        matriz.set_valor(0, 2, dx)
+        matriz.set_valor(1, 2, dy)
+        return matriz
+
+    @staticmethod
+    def rotation(angle_degrees):
+        """Cria uma matriz de rotação para um ângulo em graus."""
+        angle_radians = math.radians(angle_degrees)
+        cos_theta = math.cos(angle_radians)
+        sin_theta = math.sin(angle_radians)
+        matriz = Matriz(3, 3)
+        matriz.set_valor(0, 0, cos_theta)
+        matriz.set_valor(0, 1, -sin_theta)
+        matriz.set_valor(1, 0, sin_theta)
+        matriz.set_valor(1, 1, cos_theta)
+        matriz.set_valor(2, 2, 1)
+        return matriz
+
+    @staticmethod
+    def scaling(sx, sy):
+        """Cria uma matriz de escalonamento com fatores sx e sy."""
+        matriz = Matriz(3, 3)
+        matriz.set_valor(0, 0, sx)
+        matriz.set_valor(1, 1, sy)
+        matriz.set_valor(2, 2, 1)
+        return matriz
+
     def imprime(self):
         for linha in self.matriz:
             print(" ".join(f"{v:.2f}" for v in linha))
@@ -72,6 +121,11 @@ m2.set_valor(2, 1, 12)
 
 resultado = m1 * m2
 resultado.imprime()
+
+def to_screen_coords(x, y, canvas_width, canvas_height, window_x, window_y, zoom):
+    x = (x - window_x) * zoom
+    y = (y - window_y) * zoom
+    return (canvas_width // 2 + int(x), canvas_height // 2 - int(y))
 
 class Application(tk.Tk):
     def __init__(self):
@@ -110,80 +164,42 @@ class Application(tk.Tk):
 
         self.update_viewport()
 
-        self.listbox.bind("<<ListboxSelect>>", self.on_listbox_select)
-
     def add_point(self):
-        name = simpledialog.askstring("Nome do Ponto", "Nome do ponto:")
-        x = simpledialog.askfloat("Coordenada X", "Coordenada X:")
-        y = simpledialog.askfloat("Coordenada Y", "Coordenada Y:")
-        if name and x is not None and y is not None:
-            obj = Object2D(name, "point", x, y)
+        x = simpledialog.askfloat("Adicionar Ponto", "Coord X:")
+        y = simpledialog.askfloat("Adicionar Ponto", "Coord Y:")
+        if x is not None and y is not None:
+            obj = Object2D("Ponto", "point", x, y)
             self.objects.append(obj)
+            self.listbox.insert(tk.END, obj.name)
             self.update_viewport()
-            self.update_listbox()
 
     def add_line(self):
-        name = simpledialog.askstring("Nome da Linha", "Nome da linha:")
-        x1 = simpledialog.askfloat("Coordenada X1", "Coordenada X1:")
-        y1 = simpledialog.askfloat("Coordenada Y1", "Coordenada Y1:")
-        x2 = simpledialog.askfloat("Coordenada X2", "Coordenada X2:")
-        y2 = simpledialog.askfloat("Coordenada Y2", "Coordenada Y2:")
-        if name and x1 is not None and y1 is not None and x2 is not None and y2 is not None:
-            obj = Object2D(name, "line", x1, y1, x2, y2)
+        x1 = simpledialog.askfloat("Adicionar Linha", "Coord X1:")
+        y1 = simpledialog.askfloat("Adicionar Linha", "Coord Y1:")
+        x2 = simpledialog.askfloat("Adicionar Linha", "Coord X2:")
+        y2 = simpledialog.askfloat("Adicionar Linha", "Coord Y2:")
+        if x1 is not None and y1 is not None and x2 is not None and y2 is not None:
+            obj = Object2D("Linha", "line", x1, y1, x2, y2)
             self.objects.append(obj)
+            self.listbox.insert(tk.END, obj.name)
             self.update_viewport()
-            self.update_listbox()
 
     def remove_object(self):
-        selected_index = self.listbox.curselection()
-        if not selected_index:
-            messagebox.showwarning("Aviso", "Nenhum objeto selecionado.")
-            return
-
-        selected_name = self.listbox.get(selected_index)
-        self.objects = [obj for obj in self.objects if obj.name != selected_name]
-        self.update_viewport()
-        self.update_listbox()
-
-    def translate_object(self):
-        selected = self.get_selected_object()
+        selected = self.listbox.curselection()
         if selected:
-            dx = simpledialog.askfloat("Translação", "Deslocamento em X:")
-            dy = simpledialog.askfloat("Translação", "Deslocamento em Y:")
-            if dx is not None and dy is not None:
-                selected.translate(dx, dy)
-                self.update_viewport()
+            index = selected[0]
+            del self.objects[index]
+            self.listbox.delete(index)
+            self.update_viewport()
 
-    def rotate_object(self):
-        selected = self.get_selected_object()
-        if selected:
-            angle = simpledialog.askfloat("Rotação", "Ângulo de rotação (graus):")
-            if angle is not None:
-                selected.rotate(angle)
-                self.update_viewport()
-
-    def scale_object(self):
-        selected = self.get_selected_object()
-        if selected:
-            scale_factor = simpledialog.askfloat("Escalonamento", "Fator de escala:")
-            if scale_factor is not None:
-                selected.scale(scale_factor)
-                self.update_viewport()
-
-    def get_selected_object(self):
-        selected_index = self.listbox.curselection()
-        if not selected_index:
-            messagebox.showwarning("Aviso", "Nenhum objeto selecionado.") 
-            return None
-
-        selected_name = self.listbox.get(selected_index)
+    def update_viewport(self):
+        self.canvas.delete("all")
         for obj in self.objects:
-            if obj.name == selected_name.split(":")[0]:
-                return obj
+            obj.draw(self.canvas, self.window_x, self.window_y, self.zoom)
 
     def pan(self, dx, dy):
-        self.window_x += dx / self.zoom
-        self.window_y += dy / self.zoom
+        self.window_x += dx
+        self.window_y += dy
         self.update_viewport()
 
     def zoom_in(self):
@@ -194,30 +210,41 @@ class Application(tk.Tk):
         self.zoom /= 1.1
         self.update_viewport()
 
-    def update_viewport(self):
-        self.canvas.delete("all")
-        for obj in self.objects:
-            obj.draw(self.canvas, self.window_x, self.window_y, self.zoom)
+    def get_selected_object(self):
+        selected = self.listbox.curselection()
+        if selected:
+            index = selected[0]
+            return self.objects[index]
+        return None
 
-    def update_listbox(self):
-        self.listbox.delete(0, tk.END)
-        for obj in self.objects:
-            if obj.obj_type == "point":
-                entry = f"{obj.name}: ({obj.x1}, {obj.y1})"
-            elif obj.obj_type == "line":
-                entry = f"{obj.name}: ({obj.x1}, {obj.y1}) - ({obj.x2}, {obj.y2})"
-            self.listbox.insert(tk.END, entry)
+    def translate_object(self):
+        selected = self.get_selected_object()
+        if selected:
+            dx = simpledialog.askfloat("Translação", "Deslocamento em X:")
+            dy = simpledialog.askfloat("Translação", "Deslocamento em Y:")
+            if dx is not None and dy is not None:
+                matrix = Matriz.translation(dx, dy)
+                selected.apply_transformation(matrix)
+                self.update_viewport()
 
-    def on_listbox_select(self, event):
-        selected_index = self.listbox.curselection()
-        if selected_index:
-            selected_text = self.listbox.get(selected_index)
-            selected_name = selected_text.split(":")[0]
-            for obj in self.objects:
-                if obj.name == selected_name:
-                    self.canvas.delete("all")
-                    obj.draw(self.canvas, self.window_x, self.window_y, self.zoom)
-                    break
+    def rotate_object(self):
+        selected = self.get_selected_object()
+        if selected:
+            angle = simpledialog.askfloat("Rotação", "Ângulo de rotação (graus):")
+            if angle is not None:
+                matrix = Matriz.rotation(angle)
+                selected.apply_transformation(matrix)
+                self.update_viewport()
+
+    def scale_object(self):
+        selected = self.get_selected_object()
+        if selected:
+            sx = simpledialog.askfloat("Escalonamento", "Fator de escala em X:")
+            sy = simpledialog.askfloat("Escalonamento", "Fator de escala em Y:")
+            if sx is not None and sy is not None:
+                matrix = Matriz.scaling(sx, sy)
+                selected.apply_transformation(matrix)
+                self.update_viewport()
 
 if __name__ == "__main__":
     WIDTH, HEIGHT = 800, 600
