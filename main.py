@@ -1,6 +1,4 @@
-Entendido! Aqui está o código solicitado, com a implementação das funções de rotação e escalonamento, sem comentários.
 
-```python
 import tkinter as tk
 from tkinter import simpledialog, messagebox
 import math
