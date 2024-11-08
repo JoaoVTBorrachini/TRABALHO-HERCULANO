@@ -1,3 +1,6 @@
+Entendido! Aqui está o código solicitado, com a implementação das funções de rotação e escalonamento, sem comentários.
+
+```python
 import tkinter as tk
 from tkinter import simpledialog, messagebox
 import math
@@ -20,12 +23,8 @@ class Object2D:
             canvas.create_line(x1, y1, x2, y2, fill="black")
 
     def apply_transformation(self, matrix):
-        """Aplica uma transformação homogênea à coordenada do objeto."""
-        # Transforma o ponto inicial
         x1, y1, _ = matrix * Matriz.from_point(self.x1, self.y1)
         self.x1, self.y1 = x1, y1
-
-        # Transforma o ponto final se for uma linha
         if self.obj_type == "line" and self.x2 is not None and self.y2 is not None:
             x2, y2, _ = matrix * Matriz.from_point(self.x2, self.y2)
             self.x2, self.y2 = x2, y2
@@ -56,7 +55,6 @@ class Matriz:
 
     @staticmethod
     def from_point(x, y):
-        """Cria uma matriz coluna a partir de um ponto (x, y)."""
         matriz = Matriz(3, 1)
         matriz.set_valor(0, 0, x)
         matriz.set_valor(1, 0, y)
@@ -65,7 +63,6 @@ class Matriz:
 
     @staticmethod
     def translation(dx, dy):
-        """Cria uma matriz de translação para deslocamento dx e dy."""
         matriz = Matriz(3, 3)
         matriz.set_valor(0, 0, 1)
         matriz.set_valor(1, 1, 1)
@@ -76,7 +73,6 @@ class Matriz:
 
     @staticmethod
     def rotation(angle_degrees):
-        """Cria uma matriz de rotação para um ângulo em graus."""
         angle_radians = math.radians(angle_degrees)
         cos_theta = math.cos(angle_radians)
         sin_theta = math.sin(angle_radians)
@@ -90,37 +86,36 @@ class Matriz:
 
     @staticmethod
     def scaling(sx, sy):
-        """Cria uma matriz de escalonamento com fatores sx e sy."""
         matriz = Matriz(3, 3)
         matriz.set_valor(0, 0, sx)
         matriz.set_valor(1, 1, sy)
         matriz.set_valor(2, 2, 1)
         return matriz
 
-    def imprime(self):
-        for linha in self.matriz:
-            print(" ".join(f"{v:.2f}" for v in linha))
+    @staticmethod
+    def rotation_around_point(angle_degrees, cx, cy):
+        angle_radians = math.radians(angle_degrees)
+        cos_theta = math.cos(angle_radians)
+        sin_theta = math.sin(angle_radians)
+        translation_to_origin = Matriz.translation(-cx, -cy)
+        rotation = Matriz(3, 3)
+        rotation.set_valor(0, 0, cos_theta)
+        rotation.set_valor(0, 1, -sin_theta)
+        rotation.set_valor(1, 0, sin_theta)
+        rotation.set_valor(1, 1, cos_theta)
+        rotation.set_valor(2, 2, 1)
+        translation_back = Matriz.translation(cx, cy)
+        return translation_back * rotation * translation_to_origin
 
-# Teste de multiplicação
-m1 = Matriz(2, 3)
-m2 = Matriz(3, 2)
-
-m1.set_valor(0, 0, 1)
-m1.set_valor(0, 1, 2)
-m1.set_valor(0, 2, 3)
-m1.set_valor(1, 0, 4)
-m1.set_valor(1, 1, 5)
-m1.set_valor(1, 2, 6)
-
-m2.set_valor(0, 0, 7)
-m2.set_valor(0, 1, 8)
-m2.set_valor(1, 0, 9)
-m2.set_valor(1, 1, 10)
-m2.set_valor(2, 0, 11)
-m2.set_valor(2, 1, 12)
-
-resultado = m1 * m2
-resultado.imprime()
+    @staticmethod
+    def scaling_from_point(sx, sy, px, py):
+        translation_to_origin = Matriz.translation(-px, -py)
+        scaling = Matriz(3, 3)
+        scaling.set_valor(0, 0, sx)
+        scaling.set_valor(1, 1, sy)
+        scaling.set_valor(2, 2, 1)
+        translation_back = Matriz.translation(px, py)
+        return translation_back * scaling * translation_to_origin
 
 def to_screen_coords(x, y, canvas_width, canvas_height, window_x, window_y, zoom):
     x = (x - window_x) * zoom
@@ -132,42 +127,39 @@ class Application(tk.Tk):
         super().__init__()
         self.title("Sistema Básico 2D | João Vitor Thomazoni Borrachini |")
         self.geometry(f"{WIDTH}x{HEIGHT}")
-
         self.objects = []
         self.window_x, self.window_y = 0, 0
         self.zoom = 1.0
-
         self.canvas = tk.Canvas(self, bg="white", width=WIDTH, height=HEIGHT)
         self.canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-
         self.sidebar = tk.Frame(self, width=200, bg="lightgray")
         self.sidebar.pack(side=tk.RIGHT, fill=tk.Y)
-
         self.listbox = tk.Listbox(self.sidebar, bg="white")
         self.listbox.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
-
         self.button_frame = tk.Frame(self.sidebar)
         self.button_frame.pack(side=tk.BOTTOM, fill=tk.X)
-
         tk.Button(self.button_frame, text="Adicionar Ponto", command=self.add_point).pack(side=tk.TOP, padx=5, pady=5)
         tk.Button(self.button_frame, text="Adicionar Linha", command=self.add_line).pack(side=tk.TOP, padx=5, pady=5)
         tk.Button(self.button_frame, text="Remover Objeto", command=self.remove_object).pack(side=tk.TOP, padx=5, pady=5)
         tk.Button(self.button_frame, text="Transladar", command=self.translate_object).pack(side=tk.TOP, padx=5, pady=5)
         tk.Button(self.button_frame, text="Rotacionar", command=self.rotate_object).pack(side=tk.TOP, padx=5, pady=5)
         tk.Button(self.button_frame, text="Escalonar", command=self.scale_object).pack(side=tk.TOP, padx=5, pady=5)
+        tk.Button(self.button_frame, text="Rotacionar em torno de ponto", command=self.rotate_object_around_point).pack(side=tk.TOP, padx=5, pady=5)
+        tk.Button(self.button_frame, text="Escalonar a partir do primeiro vértice", command=self.scale_object_from_first_vertex).pack(side=tk.TOP, padx=5, pady=5)
         tk.Button(self.button_frame, text="Panning Esquerda", command=lambda: self.pan(-20, 0)).pack(side=tk.TOP, padx=5, pady=5)
         tk.Button(self.button_frame, text="Panning Direita", command=lambda: self.pan(20, 0)).pack(side=tk.TOP, padx=5, pady=5)
         tk.Button(self.button_frame, text="Panning Cima", command=lambda: self.pan(0, -20)).pack(side=tk.TOP, padx=5, pady=5)
         tk.Button(self.button_frame, text="Panning Baixo", command=lambda: self.pan(0, 20)).pack(side=tk.TOP, padx=5, pady=5)
         tk.Button(self.button_frame, text="Zoom In", command=self.zoom_in).pack(side=tk.TOP, padx=5, pady=5)
         tk.Button(self.button_frame, text="Zoom Out", command=self.zoom_out).pack(side=tk.TOP, padx=5, pady=5)
-
         self.update_viewport()
 
     def add_point(self):
         x = simpledialog.askfloat("Adicionar Ponto", "Coord X:")
         y = simpledialog.askfloat("Adicionar Ponto", "Coord Y:")
-        if x is not None and y is not None:
+        if x
+
+ is not None and y is not None:
             obj = Object2D("Ponto", "point", x, y)
             self.objects.append(obj)
             self.listbox.insert(tk.END, obj.name)
@@ -236,6 +228,17 @@ class Application(tk.Tk):
                 selected.apply_transformation(matrix)
                 self.update_viewport()
 
+    def rotate_object_around_point(self):
+        selected = self.get_selected_object()
+        if selected:
+            angle = simpledialog.askfloat("Rotação", "Ângulo de rotação (graus):")
+            cx = simpledialog.askfloat("Centro de rotação", "Coord X do ponto de rotação:")
+            cy = simpledialog.askfloat("Centro de rotação", "Coord Y do ponto de rotação:")
+            if angle is not None and cx is not None and cy is not None:
+                matrix = Matriz.rotation_around_point(angle, cx, cy)
+                selected.apply_transformation(matrix)
+                self.update_viewport()
+
     def scale_object(self):
         selected = self.get_selected_object()
         if selected:
@@ -243,6 +246,16 @@ class Application(tk.Tk):
             sy = simpledialog.askfloat("Escalonamento", "Fator de escala em Y:")
             if sx is not None and sy is not None:
                 matrix = Matriz.scaling(sx, sy)
+                selected.apply_transformation(matrix)
+                self.update_viewport()
+
+    def scale_object_from_first_vertex(self):
+        selected = self.get_selected_object()
+        if selected:
+            sx = simpledialog.askfloat("Escalonamento", "Fator de escala em X:")
+            sy = simpledialog.askfloat("Escalonamento", "Fator de escala em Y:")
+            if sx is not None and sy is not None:
+                matrix = Matriz.scaling_from_point(sx, sy, selected.x1, selected.y1)
                 selected.apply_transformation(matrix)
                 self.update_viewport()
 
